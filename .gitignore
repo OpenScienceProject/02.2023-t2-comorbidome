@@ -1,0 +1,5 @@
+data/inputs/
+data/outputs/python/graphs/
+data/outputs/python/predictions/
+data/outputs/python/tables/
+data/outputs/python/_utils/
