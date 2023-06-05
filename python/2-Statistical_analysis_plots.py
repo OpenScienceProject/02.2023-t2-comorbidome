@@ -3,9 +3,10 @@
 """
 Created on Mon Feb  6 15:07:36 2023
 
-@author: image_in
+@author: Damien Brisou
 """
 
+import sys
 from pathlib import Path
 import pandas as pd
 import numpy as np
@@ -13,10 +14,20 @@ import matplotlib.pyplot as plt
 import json
 
 
-# PARAMS______________________________________________________________________
-input_path = Path('/home/image_in/dev_ops/02.2023-t2-comorbidome/data/outputs/python')
+# PARAMETERS___________________________________________________________________
+proj_path = '/home/image_in/dev_ops/02.2023-t2-comorbidome'
 
-# Load metadatas:
+# Plot parameters:
+figsize = (10, 7)
+
+# Load metadatas:_________________________________________________________
+try:
+    proj_path = Path(sys.argv[1])
+except:
+    proj_path = Path(proj_path)
+finally:
+    input_path = proj_path.joinpath('data', 'outputs', 'python')
+
 with open(input_path.joinpath('_utils', 'variables.json')) as json_f:
     var_class = json.load(json_f)
 with open(input_path.joinpath('_utils', 'parameters.json')) as json_f:
@@ -24,27 +35,29 @@ with open(input_path.joinpath('_utils', 'parameters.json')) as json_f:
     
 int_col = ['Age', 'Polymedication', 'duration_days']
 var_class['COMORBIDITES'].remove('Polymedication')
-binary_col = [*var_class['COMORBIDITES'], *var_class['SCLERODERMIE'], 'Female', 'Male']
+binary_col = [*var_class['COMORBIDITES'], 
+              *var_class['SCLERODERMIE'], 'Female', 'Male']
 cat_col, boolean_col = ['Sex'], ['decede']
 polymedication_threshold = params['polymedication_threshold']
-
-# Plot parameters:
-figsize = (10, 7)
+#_________________________________________________________________________
 
 # Plot names:
 sgp_dct0 = { "Patient's field":
             {'Global': 'Global', 'Tabagism': 'Tabagism', 'Osteoporosis':'Osteoporosis', 
              'Obesity':'Obesity', 'Female': 'Female', 'Male': 'Male',} 
             }   
+    
 sgp_dct1 = {'Cardiovascular diseases':
             {'Global': 'Global', 'Stroke': 'Stroke', 'Myocardial Infarction': 'MI', 
            'Lower limbs Arterial Disease': 'LEAD','Cardiopathy': 'Cardiopathy', } 
             }   
+    
 sgp_dct2 = {'Chronic diseases':
                 {'Global': 'Global', 'COPD': 'COPD', 'Hemiplegia': 'Hemiplegia',
                  'Diabetes': 'Diabetes' , 'HIV': 'HIV', 
                  'CKD': 'CKD', 'Dementia':'Dementia', 'Neoplasia': 'Neoplasia' }
-                }   
+                }  
+    
 sgp_dct3 = {'Sclerodermic involvement': 
             {'Global': 'Global', 'Cardiac': 'Cardiovascular_involvement', 
                 'Pulmonary': 'Lung_involvement','Digestive': 'Digestive_involvement',
@@ -58,18 +71,7 @@ sgp_dct4 = { 'Other' :
     
 sgps = (sgp_dct0 , sgp_dct1, sgp_dct2, sgp_dct3, sgp_dct4)
 
-# PARAMS______________________________________________________________________
-
-"""
-import sys
-try:
-    input_path_ = Path(sys.argv[0])
-    csv_file = input_path_.joinpath(sys.argv[1])
-except:
-    input_path_ = Path(input_path)
-    input_path = Path(input_path)
-    csv_file = input_path_.joinpath(csv_file)
-    json_file = input_path_.joinpath(json_file)"""
+#______________________________________________________________________
 
 ## Format data
 def load_format_data(path):
@@ -136,23 +138,23 @@ def km_groups(df_, sgp_dct):
     plt.legend(loc='best')
     fig.set_size_inches(figsize)
     
-    plt.savefig(input_path.joinpath('graphs', f'{group_name}'))
-    
+    graph_path = input_path.joinpath('graphs')
+    graph_path.mkdir(parents=True, exist_ok=True)
+    plt.savefig(graph_path.joinpath(f'{group_name}'))
+
     plt.close()
 
 for sgp_dct in sgps:
     km_groups(df, sgp_dct)
 
-
 ## Check correlations between variales:
 
-
 # Save stats:
+table_path = input_path.joinpath('tables')
+table_path.mkdir(parents=True, exist_ok=True)
 stats_binary_df['prevalence_%'].round(2).to_csv(input_path.
                                 joinpath('_utils', 'comorbidome_plot.csv'), sep=';')
 stats_binary_df = pd.concat([stats_binary_df, stats_binary_df.describe()])
 stats_binary_df['Patients_Nb'] = stats_binary_df['Patients_Nb'].astype(int)
-stats_binary_df.round(2).to_csv(input_path.joinpath('tables', 
-                                                     'Var_stats(binary).csv'), sep=';')
-stats_int_df.round(2).to_csv(input_path.joinpath('tables', 
-                                                  'Var_stats(numeric).csv'), sep=';')
+stats_binary_df.round(2).to_csv(table_path.joinpath('Var_stats(binary).csv'), sep=';')
+stats_int_df.round(2).to_csv(table_path.joinpath('Var_stats(numeric).csv'), sep=';')

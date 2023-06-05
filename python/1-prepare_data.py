@@ -3,19 +3,18 @@
 """
 Created on Mon Feb  6 15:07:36 2023
 
-@author: image_in
+@author: Damien Brisou
 """
 
 from pathlib import Path
 import pandas as pd
-#import sys
+import sys
 import numpy as np
 import json
 
 # Parameters:_______________________________________________________
-input_path_ = Path('/home/image_in/dev_ops/02.2023-t2-comorbidome/data/inputs')
-output_path = Path('/home/image_in/dev_ops/02.2023-t2-comorbidome/data/outputs/python')
-csv_file = 'clean data.csv'
+proj_path = '/home/image_in/dev_ops/02.2023-t2-comorbidome'
+csv_file = 'clean_data.csv'
 
 set_lost_patients_alive = True
 polymedication_threshold = 4
@@ -34,6 +33,7 @@ replace_dct = {'Debut': 'Start', 'Fin':'End',
                'Cardio-circulatoire': 'Cardiovascular_involvement', 
                'poumon': 'Lung_involvement', 
                'rein ': 'Renal_involvement', 'digestive': 'Digestive_involvement'}
+
 df_modif_dct = {
     'merge': {
         'COMORBIDITES': (
@@ -46,6 +46,7 @@ df_modif_dct = {
         'Sex': [('femme ', 'femme'), ('femmea', 'femme'), ('homme ', 'homme')]
                 }
             }
+
 df_col_ops = {
     'data_type': {int: ['Polymedication']},
     'sup': [('Polymedication', f'Polymedication>{polymedication_threshold}',
@@ -53,12 +54,16 @@ df_col_ops = {
     'equal': [('Sex', 'Female', 'femme', ),
               ('Sex', 'Male', 'homme', )]
     }
+
 #__________________________________________________________________
-"""try :
-    input_path_ = Path(sys.argv[1])
-    print(sys.argv[1])
+try :
+    proj_path_ = Path(sys.argv[1])
 except:
-    input_path_ = Path(input_path)"""
+    proj_path_ = proj_path
+finally:
+    print(f'Project path: {proj_path_}')
+    input_path = Path(f'{proj_path_}/data/inputs')
+    output_path = Path(f'{proj_path_}/data/outputs/python')
 
 ## Save parameters:
 params = dict({'set_lost_patients_alive': set_lost_patients_alive, 
@@ -67,7 +72,7 @@ with open(output_path.joinpath('_utils', 'parameters.json'), 'w') as f:
     f.write(json.dumps(params))
 
 ## Format data
-path = input_path_.joinpath(csv_file)
+path = input_path.joinpath(csv_file)
 
 def load_format_df(path, replace_dct, df_modif_dct, df_col_ops):
     df_ = pd.read_csv(path, sep=',')

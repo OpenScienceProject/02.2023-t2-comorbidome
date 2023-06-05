@@ -3,9 +3,9 @@
 """
 Created on Fri Feb 24 18:23:41 2023
 
-@author: image_in
+@author: Damien Brisou
 """
-
+import sys
 from pathlib import Path
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -17,16 +17,9 @@ from lifelines import CoxPHFitter, WeibullAFTFitter
 from lifelines.utils.sklearn_adapter import sklearn_adapter
 from sklearn.model_selection import cross_val_score
 
-
-# PARAMS______________________________________________________________________
-input_path = Path(
-    '/home/image_in/dev_ops/02.2023-t2-comorbidome/data/outputs/python')
-
-# Load metadatas:
-with open(input_path.joinpath('_utils', 'variables.json')) as json_f:
-    var_class = json.load(json_f)
-with open(input_path.joinpath('_utils', 'parameters.json')) as json_f:
-    params = json.load(json_f)
+    
+# PARAMETERS___________________________________________________________________
+proj_path = '/home/image_in/dev_ops/02.2023-t2-comorbidome'
 
 # Model features: "breslow" (semi_parametric), "spline" (parametric), or "piecewise"
 parametric_model = False
@@ -43,7 +36,25 @@ figsize_surv = (10, 7)
 figsize_comor = (190, 190)
 comor_max_plot = 2
 
-# Variables management:_____________________________________________________
+colors_ls = ['royalblue', 'green', 'purple',
+             'turquoise', 'darkorange', 'magenta', 'yellow']
+
+# Load metadatas:_________________________________________________________
+try:
+    proj_path = Path(sys.argv[1])
+except:
+    proj_path = Path(proj_path)
+finally:
+    input_path = proj_path.joinpath('data', 'outputs', 'python')
+
+with open(input_path.joinpath('_utils', 'variables.json')) as json_f:
+    var_class = json.load(json_f)
+with open(input_path.joinpath('_utils', 'parameters.json')) as json_f:
+    params = json.load(json_f)
+    
+#__________________________________________________________________
+
+# Variables management:
 int_col = ['Age', 'Polymedication', 'duration_days']
 var_class['COMORBIDITES'].remove('Polymedication')
 binary_col = [*var_class['COMORBIDITES'], *var_class['SCLERODERMIE'],
@@ -70,10 +81,7 @@ groups_dct = {
               f'Polymedication>{polymedication_threshold}']
 }
 
-colors_ls = ['royalblue', 'green', 'purple',
-             'turquoise', 'darkorange', 'magenta', 'yellow']
-
-# PARAMS______________________________________________________________________
+#___________________________________________________________________________
 
 # Save Parameters:
 params['parametric_model'] = parametric_model
@@ -87,8 +95,6 @@ with open(input_path.joinpath('_utils', 'parameters.json'), 'w') as f:
 
 # Load and format data
 # Deals with variale selection:
-
-
 def exclude_table():  # Identifies extrem values:
     df_ = pd.read_csv(input_path.joinpath('tables', 'Var_stats(binary).csv'),
                       index_col=0, sep=';')
@@ -103,8 +109,7 @@ def exclude_table():  # Identifies extrem values:
 def load_format_data():
     df_ = pd.read_csv(input_path.joinpath('formatted_data.csv'), sep=';')
     df_comorbidome_plot = pd.read_csv(input_path.
-                                      joinpath(
-                                          '_utils', 'comorbidome_plot.csv'),
+                                      joinpath('_utils', 'comorbidome_plot.csv'),
                                       sep=';', index_col=0).drop(labels='decede')
     df_comorbidome_plot['groups'] = 'None'
     for g, ls in groups_dct.items():
@@ -134,12 +139,9 @@ def load_format_data():
             df_comorbidome_plot = df_comorbidome_plot.drop(index=el)
     return df_, df_comorbidome_plot
 
-
 df, df_comorbidome_plot = load_format_data()
 
 # Plot correlation matrix:
-
-
 def corr_matrix(X):
     corr = X.corr(method='pearson')
     plt.figure(figsize=figsize)
@@ -256,7 +258,11 @@ def predict_plot_surv_func(X):
             df['time_years'] = df.index/365
             ax.plot(df['time_years'], df[col], label=col)
         plt.legend()
-        plt.savefig(input_path.joinpath('predictions', f'{title}_plot'))
+        
+        pred_path = input_path.joinpath('predictions')
+        pred_path.mkdir(parents=True, exist_ok=True)
+        
+        plt.savefig(pred_path.joinpath(f'{title}_plot'))
         plt.close()
 
     if parametric_model:
@@ -280,8 +286,6 @@ def predict_plot_surv_func(X):
 predict_plot_surv_func(X.sample(n=15))
 
 # Comorbidome plot:
-
-
 def comoridome_polar_plot(df_):
     prev = df_['prevalence_%']*7000
     hr = 1/(df_['log(hr)'])
@@ -369,24 +373,5 @@ def comoridome_polar_plot(df_):
 
     ax.set_title("Comorbidome", fontsize=300)
     plt.savefig(input_path.joinpath('graphs', 'Comorbidome.png'))
-    plt.show()
-
 
 comoridome_polar_plot(df_comorbidome_plot)
-
-# Convert days to year, months, days format:
-
-
-def convert_days(number_of_days):
-    # Assume that years is of 365 days
-    year = int(number_of_days / 365)
-    month = int((number_of_days % 365) / 30)
-    days = (number_of_days % 365) % 30
-    return f'{year} years {month} months {days} days'
-
-
-# Driver Code
-number_of_days = 365
-convert_days(number_of_days)
-
-# Parameters fine tuning by grid search:
